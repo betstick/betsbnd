@@ -18,15 +18,27 @@ namespace str_conv
 	inline std::string __conv(std::string src, std::string src_fmt, std::string dst_fmt)
 	{
 		i32 len = src.length();
-		char* p_src = src.data();
-		char* p_dst = new char[len*4];
-		memset(p_dst,0,sizeof(char)*len*4);
+		char p_src[4096];
+		char p_dst[4096];
+		memset(p_src,0,sizeof(char)*4096);
+		memset(p_dst,0,sizeof(char)*4096);
+		for(i32 i = 0; i < len; i++)
+			p_src[i] = src[i];
 		size_t n_src = len;
 		size_t n_dst = len * 4;
 
-		iconv_t icd = iconv_open(dst_fmt.c_str(),src_fmt.c_str());
-		iconv(icd,&p_src,&n_src,&p_dst,&n_dst);
-		iconv_close(icd);
+		char* ps = p_src;
+		char* pd = p_dst;
+
+		iconv_t icd = iconv_open(src_fmt.c_str(),dst_fmt.c_str());
+		if(icd == (iconv_t)-1)
+			throw std::runtime_error("Failed to open iconv!\n");
+
+		if(iconv(icd,&ps,&n_src,&pd,&n_dst) == (size_t)-1)
+			throw std::runtime_error("Failed to run iconv!\n");
+
+		p_dst[len*4+1-n_dst] = 0;
+		//printf("p_dst: %s\n",p_dst);
 
 		std::string out;
 		i32 i = 0;
@@ -40,7 +52,8 @@ namespace str_conv
 			if(i > len * 4)
 				throw std::runtime_error("__conv(): "+src_fmt+" to "+dst_fmt+" overflow!\n");
 		}
-		delete[] p_dst;
+
+		iconv_close(icd);
 		return out;
 	};
 
