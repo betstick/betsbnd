@@ -3,6 +3,7 @@
 #include "../util/strings.h"
 #include "../util/umem.h"
 #include "../util/util.h"
+#include <stdexcept>
 
 class binder_t;
 class bnd3_t;
@@ -10,6 +11,7 @@ class bnd4_t;
 
 enum format_e
 {
+	fmt_none         = 0b00000000,
 	fmt_big_endian   = 0b00000001,
 	fmt_ids          = 0b00000010,
 	fmt_names1       = 0b00000100,
@@ -53,9 +55,11 @@ class file_header_t
 
 		fh->m_file_flags = mem->read_file_flags(bbe);
 		for(i32 i = 0; i < 3; i++)
-			mem->assert_u8(0);
+			if(!mem->assert_u8(0))
+				throw std::runtime_error("ERR\n");
 
 		fh->m_compressed_size = mem->read_i32();
+
 		fh->m_data_offset = 0;
 		if(fmt & format_e::fmt_long_offsets)
 			fh->m_data_offset = mem->read_i64();
@@ -66,15 +70,16 @@ class file_header_t
 		if(fmt & format_e::fmt_ids)
 			fh->m_id = mem->read_i32();
 
-		if(fmt & (format_e::fmt_names1 |format_e::fmt_names1))
-		{
-			i32 name_offset = mem->read_i32();
-			fh->m_name = mem->read_shift_jis(name_offset);
-		}
+		i32 name_offset = -1;
+		if(fmt & (format_e::fmt_names1 | format_e::fmt_names2))
+			name_offset = mem->read_i32();
 
 		fh->m_uncompressed_size = -1;
-		if(fmt & (format_e::fmt_compression))
+		if(fmt & format_e::fmt_compression)
 			fh->m_uncompressed_size = mem->read_i32();
+
+		if(name_offset != -1)
+			fh->m_name = mem->read_shift_jis(name_offset);
 
 		return fh;
 	};
@@ -300,7 +305,9 @@ class binder_t
 
 	void add_file(file_header_t* file);
 	
-	void remove_file(file_header_t* file);	
+	void remove_file(file_header_t* file);
+
+	std::vector<file_header_t*> get_headers() const {return file_headers;};
 };
 
 class binder_hash_table_t
