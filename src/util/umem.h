@@ -118,12 +118,13 @@ struct UMEM
 		}
 	};
 
-	UMEM* step_in(i64 offset)
+	UMEM* step_in(i64 position)
 	{
-		if(m_pos + offset < 0 || m_pos + offset >= m_size)
-			m_err = EOF;
+		if(position < 0 || position >= m_size)
+			throw std::runtime_error("step_in: out of bounds!\n");
+			//m_err = EOF;
 		m_stack.push(m_pos);
-		m_pos = m_pos + offset;
+		m_pos = position;
 		return this;
 	};
 
@@ -208,10 +209,10 @@ struct UMEM
 		m_cap  = block_alloc(new_size,m_bs);
 		m_size = new_size;
 		u8* old_ptr = m_data;
-		u8* m_data = new u8[m_cap];
+		m_data = new u8[m_cap];
 		memset(m_data,0,m_cap);
-		memcpy(m_data,old_ptr,old_size);;
-		delete old_ptr;
+		memcpy(m_data,old_ptr,old_size);
+		delete[] old_ptr;
 	};
 
 	i32 seek(i64 offset, i32 whence)
@@ -296,16 +297,15 @@ struct UMEM
 		return false;
 	};*/
 
-	std::string read_str(i64 offset)
+	std::string read_str(i64 position)
 	{
-		step_in(offset);
+		step_in(position);
 		std::string str = "";
-		while(true)
+		char c = read_u8();
+		while(c != 0)
 		{
-			char c = read_u8();
 			str.push_back(c);
-			if(c == '\0')
-				break;
+			c = read_u8();
 		}
 		step_out();
 		return str;
@@ -341,8 +341,8 @@ struct UMEM
 
 	u8 read_file_flags(bool bit_big_endian)
 	{
-		u8 flags = 0;
-		read(&flags,sizeof(u8),1);
+		bool rev = bit_big_endian;
+		u8 flags = read_u8();
 		return bit_big_endian ? flags : flip_byte(flags);
 	};
 
@@ -350,7 +350,7 @@ struct UMEM
 	{
 		u8 format = 0;
 		read(&format,sizeof(u8),1);
-		bool reverse = bit_big_endian || (format & 1) != 0 && (format & 0b10000000) == 0;
+		bool reverse = bit_big_endian || (format & 0x1) != 0 && (format & 0b10000000) == 0;
 		return reverse ? format : flip_byte(format);
 	};
 
