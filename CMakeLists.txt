@@ -78,3 +78,6 @@ endfunction()
 create_bin(NAME betsbnd PATH src/main.cpp FLAGS ${STD_FLAGS} DEFS ${STD_DEFS})
 create_bin(NAME betsbnd_dbg PATH src/main.cpp FLAGS ${DBG_FLAGS} DEFS ${DBG_DEFS})
 create_bin(NAME betsbnd_vlg PATH src/main.cpp FLAGS ${VLG_FLAGS} DEFS ${VLG_DEFS})
+
+create_bin(NAME test_dsr PATH src/test/dsr.cpp FLAGS ${STD_FLAGS} DEFS ${STD_DEFS})
+create_bin(NAME test_dsr_dbg PATH src/test/dsr.cpp FLAGS ${DBG_FLAGS} DEFS ${DBG_DEFS})
